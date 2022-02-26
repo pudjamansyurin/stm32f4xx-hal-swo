@@ -15,18 +15,15 @@
  ******************************************************************************
  */
 #include "swo.h"
-#include <stdio.h>
 
 /* Private variables */
 #ifndef SWO_UNBUFFERED
 static char swo_buffer[SWO_BUFFER_SZ];
 #endif
-#ifdef SWO_UART
 static UART_HandleTypeDef *swo_uart;
-#endif
 
 /* Public function definitions */
-HAL_StatusTypeDef SWO_Init(void)
+HAL_StatusTypeDef SWO_Init(void *huart)
 {
   int rc;
 
@@ -38,16 +35,12 @@ HAL_StatusTypeDef SWO_Init(void)
   rc = setvbuf(stdout, swo_buffer, _IOLBF, SWO_BUFFER_SZ);
 #endif
 
+  /* Use UART instead of ITM */
+  if (huart != NULL)
+    swo_uart = (UART_HandleTypeDef*) huart;
+
   return (rc == 0 ? HAL_OK : HAL_ERROR);
 }
-
-#ifdef SWO_UART
-HAL_StatusTypeDef SWO_SetUART(UART_HandleTypeDef *huart)
-{
-  swo_uart = huart;
-  return (HAL_OK);
-}
-#endif
 
 void SWO_PrintMatrixFloat(const char *name, const float *data, uint16_t row, uint16_t col)
 {
@@ -63,11 +56,9 @@ void SWO_PrintMatrixFloat(const char *name, const float *data, uint16_t row, uin
 /* Replace weak syscall routines */
 int __io_putchar(int ch)
 {
-#ifdef SWO_UART
-  HAL_UART_Transmit(swo_uart, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
-#else
-  ITM_SendChar(ch);
-#endif
-
+  if (swo_uart != NULL)
+    HAL_UART_Transmit(swo_uart, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
+  else
+    ITM_SendChar(ch);
   return (ch);
 }

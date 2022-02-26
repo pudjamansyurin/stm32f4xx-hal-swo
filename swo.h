@@ -9,8 +9,8 @@
 #define STM32F4XX_HAL_SWO_SWO_H_
 
 #include "stm32f4xx_hal.h"
+#include <stdio.h>
 
-#define SWO_UART
 #define SWO_UNBUFFERED
 
 /* Public macros */
@@ -19,10 +19,7 @@
 #endif
 
 /* Public function declarations */
-HAL_StatusTypeDef SWO_Init(void);
-#ifdef SWO_UART
-HAL_StatusTypeDef SWO_SetUART(UART_HandleTypeDef *huart);
-#endif
+HAL_StatusTypeDef SWO_Init(void *huart);
 void SWO_PrintMatrixFloat(const char *name, const float *data, uint16_t row, uint16_t col);
 
 #endif /* STM32F4XX_HAL_SWO_SWO_H_ */
