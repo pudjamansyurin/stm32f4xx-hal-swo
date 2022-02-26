@@ -56,9 +56,22 @@ void SWO_PrintMatrixFloat(const char *name, const float *data, uint16_t row, uin
 /* Replace weak syscall routines */
 int __io_putchar(int ch)
 {
-  if (swo_uart != NULL)
-    HAL_UART_Transmit(swo_uart, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
-  else
+  if (swo_uart == NULL)
     ITM_SendChar(ch);
+  else
+    HAL_UART_Transmit(swo_uart, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
   return (ch);
 }
+
+int _write(int file, char *ptr, int len)
+{
+  if (swo_uart == NULL) {
+    for (int DataIdx = 0; DataIdx < len; DataIdx++)
+      __io_putchar(*ptr++);
+  } else {
+    HAL_UART_Transmit(swo_uart, (uint8_t*) ptr, len, HAL_MAX_DELAY);
+  }
+
+  return len;
+}
+
