@@ -6,8 +6,11 @@
  ******************************************************************************
  * @attention
  *
- * This module is not re-entrant, so if you use RTOS, please implement _Lock()
- * and _Unlock() mechanism using Recursive Mutex.
+ * Just call general printf() routine from <stdio.h> to use this module.
+ * You have to enable ITM Port 0, and make sure the SWO clock (before prescaler)
+ * is same with CPU clock.
+ * This module is not re-entrant, if you want to use RTOS, please add your
+ * own mutex implementation.
  *
  ******************************************************************************
  */
@@ -16,12 +19,11 @@
 
 /* Private variables */
 #ifndef SWO_UNBUFFERED
-static char SWO_BUFFER[SWO_BUFFER_SZ];
+static char swo_buffer[SWO_BUFFER_SZ];
 #endif
-
-/* Private function declarations */
-__STATIC_FORCEINLINE void _Lock(void);
-__STATIC_FORCEINLINE void _UnLock(void);
+#ifdef SWO_UART
+static UART_HandleTypeDef *swo_uart;
+#endif
 
 /* Public function definitions */
 HAL_StatusTypeDef SWO_Init(void)
@@ -33,55 +35,39 @@ HAL_StatusTypeDef SWO_Init(void)
   rc = setvbuf(stdout, NULL, _IONBF, 0);
 #else
   /* Enable line buffering */
-  rc = setvbuf(stdout, SWO_BUFFER, _IOLBF, SWO_BUFFER_SZ);
+  rc = setvbuf(stdout, swo_buffer, _IOLBF, SWO_BUFFER_SZ);
 #endif
 
   return (rc == 0 ? HAL_OK : HAL_ERROR);
 }
 
+#ifdef SWO_UART
+HAL_StatusTypeDef SWO_SetUART(UART_HandleTypeDef *huart)
+{
+  swo_uart = huart;
+  return (HAL_OK);
+}
+#endif
+
 void SWO_PrintMatrixFloat(const char *name, const float *data, uint16_t row, uint16_t col)
 {
-  printf("============================================================================"CRLF);
-  printf(" %s[%d][%d] :"CRLF, name, row, col);
-  for (uint16_t ro = 0; ro < row; ro++) {
-    for (uint16_t co = 0; co < col; co++) {
-      printf("%f, ", *(data + (row * col + col)));
-    }
-    printf(CRLF);
+  printf("%s[%d][%d]:\r\n", name, row, col);
+  for (uint16_t r = 0; r < row; r++) {
+    for (uint16_t c = 0; c < col; c++)
+      printf("%.1f, ", *(data + (r * col + c)));
+    printf("\r\n");
   }
-  printf("============================================================================"CRLF);
-}
-
-/* Private function definitions */
-__STATIC_FORCEINLINE void _Lock(void)
-{
-  /* Implement me if using RTOS */
-}
-
-__STATIC_FORCEINLINE void _UnLock(void)
-{
-  /* Implement me if using RTOS */
+  printf("\r\n");
 }
 
 /* Replace weak syscall routines */
 int __io_putchar(int ch)
 {
-  _Lock();
+#ifdef SWO_UART
+  HAL_UART_Transmit(swo_uart, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
+#else
   ITM_SendChar(ch);
-  _UnLock();
+#endif
 
   return (ch);
 }
-
-int _write(int file, char *data, int len)
-{
-  int DataIdx;
-
-  _Lock();
-  for (DataIdx = 0; DataIdx < len; DataIdx++)
-    __io_putchar(*data++);
-  _UnLock();
-
-  return (len);
-}
-
