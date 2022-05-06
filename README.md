@@ -9,12 +9,8 @@
 
 int main(void)
 {
-  /* (Option 1) Initialize SWO using ITM */
-  SWO_Init(NULL);
-  
-  /* (Option 2) Initialize SWO using UART */
-  MX_USART2_UART_Init();
-  SWO_Init(&huart2);
+  /* Initialize SWO-ITM */
+  SWO_Init();
 
   /* Super loop */
   while(1) {

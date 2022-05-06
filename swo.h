@@ -8,10 +8,9 @@
 #ifndef STM32F4XX_HAL_SWO_SWO_H_
 #define STM32F4XX_HAL_SWO_SWO_H_
 
-#include "stm32f4xx_hal.h"
-#include <stdio.h>
+#include "stm32f4xx-stdout/stdout.h"
 
 /* Public function declarations */
-HAL_StatusTypeDef SWO_Init(UART_HandleTypeDef *huart);
+void SWO_Init(void);
 
 #endif /* STM32F4XX_HAL_SWO_SWO_H_ */
